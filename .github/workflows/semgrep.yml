@@ -31,7 +31,7 @@ jobs:
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_TOKEN }}
         run: |
-          semgrep ci --config auto --publish-token $SEMGREP_APP_TOKEN
+          semgrep ci --config auto --upload-token $SEMGREP_APP_TOKEN
 
       # Step 5: Save Semgrep Results (optional)
       - name: Save Semgrep Results
