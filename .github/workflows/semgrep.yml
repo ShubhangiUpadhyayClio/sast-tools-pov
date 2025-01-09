@@ -1,51 +1,37 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow file requires a free account on Semgrep.dev to
-# manage rules, file ignores, notifications, and more.
-#
-# See https://semgrep.dev/docs
-
-name: Semgrep
+name: Snyk Code Scan
 
 on:
   push:
-    branches: [ "CodeQL-Test"]
+    branches:
+      - main
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "CodeQL-Test" ]
-  schedule:
-    - cron: '35 4 * * 4'
-
-permissions:
-  contents: read
-  pull-requests: write
 
 jobs:
-  semgrep:
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-      pull-requests: write
-    name: Scan
+  snyk-code-scan:
     runs-on: ubuntu-latest
     steps:
-      # Checkout project source
-      - uses: actions/checkout@v4
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      # Scan code using project's configuration on https://semgrep.dev/manage
-      - uses: returntocorp/semgrep-action@fcd5ab7459e8d91cb1777481980d1b18b4fc6735
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ secrets.SEMGREP_DEPLOYMENT_ID }}
-          generateSarif: "1"
+      # Step 2: Install Snyk CLI
+      - name: Install Snyk CLI
+        run: npm install -g snyk
 
-      # Upload SARIF file generated in previous step
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+      # Step 3: Authenticate with Snyk
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk auth $SNYK_TOKEN
+
+      # Step 4: Run Snyk Code Analysis
+      - name: Run Snyk Code Analysis
+        env:
+          SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
+        run: snyk code test --org=$SNYK_ORG_ID --sarif --json-file-output=snyk-code-results.sarif
+
+      # Step 5: Upload SARIF file to GitHub Security tab (optional)
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: semgrep.sarif
-        if: always()
+          sarif_file: snyk-code-results.sarif
